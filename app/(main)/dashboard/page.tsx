@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Header from "@/components/shared/Header";
 import Footer from "@/components/shared/Footer";
+import VerifiedBadge from "@/components/shared/VerifiedBadge";
 import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
@@ -29,7 +30,10 @@ export default async function DashboardPage() {
               {profile?.full_name?.charAt(0) || "U"}
             </div>
             <div>
-              <h2 className="text-2xl font-bold">{profile?.full_name}</h2>
+              <div className="flex items-center space-x-2">
+                <h2 className="text-2xl font-bold">{profile?.full_name}</h2>
+                {profile?.verification_status === "verified" && <VerifiedBadge />}
+              </div>
               <p className="text-gray-500">{profile?.phone_number}</p>
               <span className="inline-block bg-primary/10 text-primary text-xs font-bold px-2 py-1 rounded mt-2 uppercase tracking-wider">
                 {profile?.role}

@@ -1,20 +1,29 @@
 "use client";
 
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 
 export default function Header() {
   const router = useRouter();
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      if (user) {
+        const { data } = await supabase
+          .from("users")
+          .select("verification_status")
+          .eq("id", user.id)
+          .single();
+        setProfile(data);
+      }
     };
     getUser();
 
@@ -25,12 +34,25 @@ export default function Header() {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [supabase.auth]);
+  }, [supabase]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
+  };
+
+  const handlePostListing = (e: React.MouseEvent) => {
+    if (!user) {
+      e.preventDefault();
+      router.push("/login");
+      return;
+    }
+
+    if (profile?.verification_status !== "verified") {
+      e.preventDefault();
+      router.push("/dashboard/verification");
+    }
   };
 
   return (
@@ -43,7 +65,13 @@ export default function Header() {
         <nav className="hidden md:flex items-center space-x-8">
           <Link href="/" className="text-text-primary hover:text-primary font-medium">Home</Link>
           <Link href="/apartments" className="text-text-primary hover:text-primary font-medium">Search</Link>
-          <Link href="/dashboard/listings/new" className="text-text-primary hover:text-primary font-medium">Post Apartment</Link>
+          <Link
+            href="/dashboard/listings/new"
+            onClick={handlePostListing}
+            className="text-text-primary hover:text-primary font-medium"
+          >
+            Post Apartment
+          </Link>
         </nav>
 
         <div className="flex items-center space-x-4">
