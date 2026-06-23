@@ -1,7 +1,15 @@
 import Header from "@/components/shared/Header";
 import Footer from "@/components/shared/Footer";
+import { createClient } from "@/lib/supabase/server";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = createClient();
+  const { data: categories } = await supabase
+    .from("categories")
+    .select("*")
+    .eq("is_active", true)
+    .order("display_order", { ascending: true });
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
@@ -31,6 +39,9 @@ export default function Home() {
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Type</label>
                 <select className="w-full text-text-primary focus:outline-none">
                   <option>Any Type</option>
+                  {categories?.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
                 </select>
               </div>
               <div className="flex-grow p-2 text-left md:border-l border-border">

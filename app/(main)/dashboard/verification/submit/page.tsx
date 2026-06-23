@@ -46,25 +46,21 @@ export default function VerificationSubmitPage() {
       const backPath = await uploadFile(backImage, `${user.id}/back_${timestamp}.jpg`);
       const selfiePath = await uploadFile(selfie, `${user.id}/selfie_${timestamp}.jpg`);
 
-      // Store in database (In production, encrypt ghanaCardNumber here or in a DB trigger)
-      const { error: dbError } = await supabase
-        .from("verification_requests")
-        .insert({
-          user_id: user.id,
-          ghana_card_number_encrypted: ghanaCardNumber, // Simple storage for now
-          front_image_url: frontPath,
-          back_image_url: backPath,
-          selfie_url: selfiePath,
-          status: "pending",
-        });
+      // Store in database via API route to ensure encryption happens on the server
+      const response = await fetch("/api/verification", {
+        method: "POST",
+        body: JSON.stringify({
+          ghanaCardNumber,
+          frontPath,
+          backPath,
+          selfiePath,
+        }),
+      });
 
-      if (dbError) throw dbError;
-
-      // Update user status
-      await supabase
-        .from("users")
-        .update({ verification_status: "pending" })
-        .eq("id", user.id);
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Failed to submit verification");
+      }
 
       setSuccess(true);
     } catch (err: any) {
