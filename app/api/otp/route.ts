@@ -1,10 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { sendSMSOTP } from "@/lib/arkesel/otp";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   const { action, phoneNumber, otp } = await request.json();
-  const supabase = createClient();
+  // Use admin client to bypass RLS for OTP storage
+  const supabase = createAdminClient();
 
   if (action === "send") {
     const now = new Date();

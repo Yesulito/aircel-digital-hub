@@ -153,7 +153,11 @@ ALTER TABLE otps ENABLE ROW LEVEL SECURITY;
 
 -- Users: Anyone can read profiles, users can update their own
 CREATE POLICY "Public profiles are viewable by everyone" ON users FOR SELECT USING (true);
+CREATE POLICY "Users can insert their own profile" ON users FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid() = id);
+
+-- OTPs: Anyone can insert, system handles verification
+-- OTPs: No public access, handled by service role in API routes
 
 -- Categories: Anyone can read, only admin can manage
 CREATE POLICY "Categories are viewable by everyone" ON categories FOR SELECT USING (true);
@@ -177,6 +181,10 @@ CREATE POLICY "Users can manage own saved listings" ON saved_listings FOR ALL US
 -- Reviews: Anyone can read, logged in users can insert
 CREATE POLICY "Reviews are viewable by everyone" ON reviews FOR SELECT USING (is_hidden = false);
 CREATE POLICY "Renters can insert reviews" ON reviews FOR INSERT WITH CHECK (auth.uid() = reviewer_id);
+
+-- Verification Requests: Users can insert own, admins can manage
+CREATE POLICY "Users can insert verification requests" ON verification_requests FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can view own verification requests" ON verification_requests FOR SELECT USING (auth.uid() = user_id);
 
 -- Admin policies (for initial setup, assuming an 'admin' role in users table)
 CREATE POLICY "Admins have full access to reports" ON reports FOR ALL USING (
