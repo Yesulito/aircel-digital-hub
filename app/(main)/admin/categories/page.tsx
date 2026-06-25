@@ -12,7 +12,7 @@ export default function AdminCategoriesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
 
-  const fetchCategories = async () => {
+  const fetchCategories = React.useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
       .from("categories")
@@ -20,11 +20,11 @@ export default function AdminCategoriesPage() {
       .order("display_order", { ascending: true });
     if (data) setCategories(data);
     setLoading(false);
-  };
+  }, [supabase]);
 
   useEffect(() => {
     fetchCategories();
-  }, [supabase]);
+  }, [fetchCategories]);
 
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();

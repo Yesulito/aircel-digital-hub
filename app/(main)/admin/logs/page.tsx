@@ -8,7 +8,7 @@ export default function AdminLogsPage() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchLogs = async () => {
+  const fetchLogs = React.useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
       .from("activity_logs")
@@ -17,11 +17,11 @@ export default function AdminLogsPage() {
 
     if (data) setLogs(data);
     setLoading(false);
-  };
+  }, [supabase]);
 
   useEffect(() => {
     fetchLogs();
-  }, [supabase]);
+  }, [fetchLogs]);
 
   return (
     <div className="space-y-8">

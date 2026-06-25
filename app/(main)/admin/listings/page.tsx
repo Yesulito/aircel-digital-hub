@@ -9,6 +9,7 @@ export default function AdminListingsPage() {
   const [listings, setListings] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -22,7 +23,7 @@ export default function AdminListingsPage() {
     "Brong-Ahafo", "Oti", "Savannah", "North East", "Western North"
   ];
 
-  const fetchListings = async () => {
+  const fetchListings = React.useCallback(async () => {
     setLoading(true);
     let query = supabase
       .from("listings")
@@ -37,7 +38,7 @@ export default function AdminListingsPage() {
     const { data } = await query;
     if (data) setListings(data);
     setLoading(false);
-  };
+  }, [supabase, region, status, category, search]);
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -46,7 +47,7 @@ export default function AdminListingsPage() {
     };
     fetchCats();
     fetchListings();
-  }, [supabase, region, status, category]);
+  }, [fetchListings, supabase]);
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -67,6 +68,42 @@ export default function AdminListingsPage() {
     }
   };
 
+  const handleBulkAction = async (newStatus: string) => {
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Are you sure you want to set ${selectedIds.length} listings to ${newStatus}?`)) return;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("listings")
+      .update({ status: newStatus })
+      .in("id", selectedIds);
+
+    if (!error) {
+      await supabase.from("activity_logs").insert({
+        admin_id: user?.id,
+        action: "bulk_updated_listings",
+        target_type: "listing",
+        details: `Bulk updated ${selectedIds.length} listings to ${newStatus}`
+      });
+      setSelectedIds([]);
+      fetchListings();
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === listings.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(listings.map(l => l.id));
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -76,58 +113,71 @@ export default function AdminListingsPage() {
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-border shadow-sm flex flex-wrap gap-4 items-end">
-        <div className="flex-grow min-w-[200px]">
-          <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Search Title</label>
-          <div className="relative">
-            <input
-              type="text"
-              className="w-full pl-10 pr-4 py-2 border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Search listings..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && fetchListings()}
-            />
-            <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+      {/* Bulk Actions & Filters */}
+      <div className="space-y-4">
+        {selectedIds.length > 0 && (
+          <div className="bg-primary/5 border border-primary/20 p-4 rounded-2xl flex items-center justify-between animate-in slide-in-from-top-2">
+            <span className="text-sm font-bold text-primary">{selectedIds.length} listings selected</span>
+            <div className="flex space-x-2">
+              <button onClick={() => handleBulkAction("active")} className="px-4 py-2 bg-green-600 text-white text-xs font-bold rounded-xl shadow-sm">Activate</button>
+              <button onClick={() => handleBulkAction("hidden")} className="px-4 py-2 bg-amber-500 text-white text-xs font-bold rounded-xl shadow-sm">Hide</button>
+              <button onClick={() => handleBulkAction("removed")} className="px-4 py-2 bg-red-600 text-white text-xs font-bold rounded-xl shadow-sm">Remove</button>
+              <button onClick={() => setSelectedIds([])} className="px-4 py-2 bg-white border border-border text-xs font-bold rounded-xl">Cancel</button>
+            </div>
           </div>
-        </div>
-        <div>
-          <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Region</label>
-          <select
-            className="px-4 py-2 border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-          >
-            <option value="">All Regions</option>
-            {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Category</label>
-          <select
-            className="px-4 py-2 border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="">All Categories</option>
-            {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Status</label>
-          <select
-            className="px-4 py-2 border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option value="">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="hidden">Hidden</option>
-            <option value="removed">Removed</option>
-          </select>
+        )}
+
+        <div className="bg-white rounded-2xl p-4 border border-border shadow-sm flex flex-wrap gap-4 items-end">
+          <div className="flex-grow min-w-[200px]">
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Search Title</label>
+            <div className="relative">
+              <input
+                type="text"
+                className="w-full pl-10 pr-4 py-2 border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
+                placeholder="Search listings..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Region</label>
+            <select
+              className="px-4 py-2 border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+            >
+              <option value="">All Regions</option>
+              {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Category</label>
+            <select
+              className="px-4 py-2 border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="">All Categories</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Status</label>
+            <select
+              className="px-4 py-2 border border-border rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="hidden">Hidden</option>
+              <option value="removed">Removed</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -136,6 +186,14 @@ export default function AdminListingsPage() {
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b border-border">
               <tr>
+                <th className="px-6 py-4 w-10">
+                  <input
+                    type="checkbox"
+                    className="rounded border-border text-primary focus:ring-primary"
+                    checked={listings.length > 0 && selectedIds.length === listings.length}
+                    onChange={toggleSelectAll}
+                  />
+                </th>
                 <th className="px-6 py-4 text-xs font-bold uppercase text-gray-400">Listing</th>
                 <th className="px-6 py-4 text-xs font-bold uppercase text-gray-400">Landlord</th>
                 <th className="px-6 py-4 text-xs font-bold uppercase text-gray-400">Status</th>
@@ -145,7 +203,15 @@ export default function AdminListingsPage() {
             </thead>
             <tbody className="divide-y divide-border">
               {listings.map((l) => (
-                <tr key={l.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={l.id} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(l.id) ? "bg-primary/5" : ""}`}>
+                  <td className="px-6 py-4">
+                    <input
+                      type="checkbox"
+                      className="rounded border-border text-primary focus:ring-primary"
+                      checked={selectedIds.includes(l.id)}
+                      onChange={() => toggleSelect(l.id)}
+                    />
+                  </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
                       <Link href={`/apartments/${l.id}`} className="font-bold text-text-primary hover:text-primary transition-colors line-clamp-1">
@@ -198,7 +264,7 @@ export default function AdminListingsPage() {
               ))}
               {listings.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500 italic">
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500 italic">
                     No listings found matching your criteria.
                   </td>
                 </tr>

@@ -10,7 +10,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
 
-  const fetchUsers = async () => {
+  const fetchUsers = React.useCallback(async () => {
     setLoading(true);
     let query = supabase.from("users").select("*").order("created_at", { ascending: false });
 
@@ -20,11 +20,11 @@ export default function AdminUsersPage() {
     const { data } = await query;
     if (data) setUsers(data);
     setLoading(false);
-  };
+  }, [supabase, roleFilter, search]);
 
   useEffect(() => {
     fetchUsers();
-  }, [roleFilter]);
+  }, [fetchUsers]);
 
   const handleUpdateUser = async (id: string, updates: any) => {
     const { data: { user: admin } } = await supabase.auth.getUser();

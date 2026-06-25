@@ -8,7 +8,7 @@ export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchReviews = async () => {
+  const fetchReviews = React.useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
       .from("reviews")
@@ -18,11 +18,11 @@ export default function AdminReviewsPage() {
 
     if (data) setReviews(data);
     setLoading(false);
-  };
+  }, [supabase]);
 
   useEffect(() => {
     fetchReviews();
-  }, [supabase]);
+  }, [fetchReviews]);
 
   const handleAction = async (id: string, action: "keep" | "hide" | "delete") => {
     const { data: { user: admin } } = await supabase.auth.getUser();

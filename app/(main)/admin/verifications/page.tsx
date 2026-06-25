@@ -10,7 +10,7 @@ export default function AdminVerificationsPage() {
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchRequests = async () => {
+  const fetchRequests = React.useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
       .from("verification_requests")
@@ -19,11 +19,11 @@ export default function AdminVerificationsPage() {
 
     if (data) setRequests(data);
     setLoading(false);
-  };
+  }, [supabase]);
 
   useEffect(() => {
     fetchRequests();
-  }, [supabase]);
+  }, [fetchRequests]);
 
   return (
     <div className="space-y-8">

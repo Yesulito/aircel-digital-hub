@@ -9,7 +9,7 @@ export default function AdminReportsPage() {
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchReports = async () => {
+  const fetchReports = React.useCallback(async () => {
     setLoading(true);
     const { data } = await supabase
       .from("reports")
@@ -18,11 +18,11 @@ export default function AdminReportsPage() {
 
     if (data) setReports(data);
     setLoading(false);
-  };
+  }, [supabase]);
 
   useEffect(() => {
     fetchReports();
-  }, [supabase]);
+  }, [fetchReports]);
 
   const handleAction = async (id: string, status: string, actionText: string) => {
     const { data: { user: admin } } = await supabase.auth.getUser();

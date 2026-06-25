@@ -7,7 +7,7 @@ export default async function AdminDashboardPage() {
 
   // Fetch Stats
   const { count: userCount } = await supabase.from("users").select("*", { count: "exact", head: true });
-  const { count: listingCount } = await supabase.from("listings").select("*", { count: "exact", head: true });
+  const { count: listingCount } = await supabase.from("listings").select("*", { count: "exact", head: true }).eq("status", "active");
   const { count: pendingVerifications } = await supabase.from("verification_requests").select("*", { count: "exact", head: true }).eq("status", "pending");
   const { count: reportCount } = await supabase.from("reports").select("*", { count: "exact", head: true }).eq("status", "pending");
   const { count: flaggedReviews } = await supabase.from("reviews").select("*", { count: "exact", head: true }).eq("is_flagged", true);
@@ -17,7 +17,7 @@ export default async function AdminDashboardPage() {
     .from("activity_logs")
     .select("*, admin:admin_id(full_name)")
     .order("created_at", { ascending: false })
-    .limit(10);
+    .limit(20);
 
   const stats = [
     { name: "Total Users", value: userCount || 0, href: "/admin/users", color: "bg-blue-500" },
