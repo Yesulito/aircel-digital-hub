@@ -1,0 +1,21 @@
+{
+  "name": "Hiredan",
+  "short_name": "Hiredan",
+  "description": "Ghana-focused digital apartment rental marketplace.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F9FAFB",
+  "theme_color": "#1B4332",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
